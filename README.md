@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Story Publishing Platform (Django + React)
 
 Roadmap progress: **Phase 2** (Django foundation), **Phase 3** (accounts, auth, permissions, rate limiting) and **Phase 4** (Story CMS backend).
@@ -144,3 +145,7 @@ No database reset is needed. Optional: `python manage.py publish_scheduled` (als
 
 Rules: `status`, `published_at`, `scheduled_at` and the counters can never be set through create or PATCH; slugs are
 unique and stay stable when the title changes; category and tag names are unique ignoring case.
+=======
+# resboard_backend
+# i did this my selgf
+>>>>>>> f6f7a3e37205436efcef124b0ddd98637e797921
