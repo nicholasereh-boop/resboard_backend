@@ -27,17 +27,19 @@ def test_the_config_endpoint_tells_the_pages_the_currency_and_the_backend_rule(s
     assert APIClient().get(MP + "config/").json()["data"]["payments_enabled"] is True
 
 
-def test_a_dollar_price_goes_to_paystack_in_cents_in_usd(paystack, seller, buyer):
+def test_a_dollar_price_is_charged_by_paystack_as_the_equivalent_in_naira(paystack, seller, buyer):
     c = client_for(seller)
     p = new_project(c, backend_price="49.00")
     upload(c, p["id"], kind="backend")
     publish(p["id"])
     r = client_for(buyer).post(MP + f"projects/{p['id']}/checkout/", {"kind": "backend"}, format="json")
-    assert r.status_code == 200 and r.json()["data"]["amount"] == "49.00" and r.json()["data"]["currency"] == "USD"
+    d = r.json()["data"]
+    assert r.status_code == 200 and (d["amount"], d["currency"], d["list_price"], d["list_currency"]) == ("73500.00", "NGN", "49.00", "USD")
     sent = paystack.initialized[0]
-    assert sent["amount_minor"] == 4900 and sent["currency"] == "USD"
+    assert sent["amount_minor"] == 7350000 and sent["currency"] == "NGN"  # 49 USD x 1500 = 73,500 naira, in kobo
     purchase = SourcePurchase.objects.get()
-    assert (purchase.amount_minor, purchase.currency) == (4900, "USD")
+    assert (purchase.amount_minor, purchase.currency) == (7350000, "NGN")
+    assert (str(purchase.list_price), purchase.list_currency, str(purchase.fx_rate)) == ("49.00", "USD", "1500.000000")
 
 
 def test_a_project_priced_before_the_switch_keeps_the_currency_it_was_priced_in(paystack, seller, buyer):

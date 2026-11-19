@@ -51,8 +51,8 @@ ACTIONS = {
     "marketplace.reject": "Marketplace project rejected",
     "marketplace.archive": "Marketplace project archived",
     "marketplace.purchase": "Marketplace purchase verified",
-
-        # news (sources and rights)
+    # academy (courses and lessons)
+    # news (sources and rights)
     "news.source_create": "News source added",
     "news.source_update": "News source changed",
     "news.source_approve": "News source approved",
@@ -62,7 +62,7 @@ ACTIONS = {
     "news.rights_update": "News rights record (draft) changed",
     "news.rights_approve": "News rights record approved",
     "news.rights_revoke": "News rights revoked (articles quarantined)",
-        # news (newsroom)
+    # news (newsroom)
     "news.category_create": "News category created",
     "news.category_update": "News category changed",
     "news.category_delete": "News category deleted",
@@ -76,18 +76,17 @@ ACTIONS = {
     "news.article_restore": "News article restored to review",
     "news.article_import": "News article imported by hand (waiting for review)",
     "news.ingest_run": "News feed polled by the scheduler",
-    "news.asset_create": "News image or video added",
-    "news.asset_update": "News image or video changed or removed",
-    "news.asset_clear": "News image or video cleared for use",
-    "news.asset_reject": "News image or video rejected",
-    "news.comment_approve": "News comment approved",
-    "news.comment_hide": "News comment hidden",
-    "news.comment_delete": "News comment deleted by staff",
     "news.takedown_receive": "Copyright or accuracy complaint received about a news article",
     "news.takedown_hold": "News article put on hold because of a complaint",
     "news.takedown_uphold": "News complaint upheld (article withdrawn)",
     "news.takedown_dismiss": "News complaint dismissed",
-        # academy (courses and lessons)
+    "news.comment_approve": "News comment approved",
+    "news.comment_hide": "News comment hidden",
+    "news.comment_delete": "News comment deleted by staff",
+    "news.asset_create": "News image or video added",
+    "news.asset_update": "News image or video changed or removed",
+    "news.asset_clear": "News image or video cleared for use",
+    "news.asset_reject": "News image or video rejected",
     "academy.course_create": "Academy course created",
     "academy.course_update": "Academy course changed",
     "academy.course_publish": "Academy course published",
@@ -98,7 +97,7 @@ ACTIONS = {
     "academy.lesson_update": "Academy lesson changed",
     "academy.lesson_delete": "Academy lesson deleted",
     "academy.lesson_reorder": "Academy lessons reordered",
-        # academy (paid access)
+    # academy (paid access)
     "academy.purchase": "Academy course purchase verified",
     "academy.order_refund": "Academy order refunded",
     "academy.access_grant": "Academy complimentary access granted",

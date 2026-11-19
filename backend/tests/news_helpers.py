@@ -24,7 +24,6 @@ def make_record(source, **overrides):
     return NewsRightsRecord.objects.create(source=source, **values)
 
 
-
 def make_article(source, user=None, **overrides):
     """A DRAFT created through the real service (so hashes, slug, attribution and revision exist)."""
     from apps.news.services import articles

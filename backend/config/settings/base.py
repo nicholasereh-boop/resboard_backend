@@ -57,9 +57,8 @@ INSTALLED_APPS = [
     "apps.audit",
     # extension roadmap: additive apps
     "apps.source_marketplace",
-    "apps.video_tools",
     "apps.academy",
-    "apps.news"
+    "apps.news",
 ]
 
 MIDDLEWARE = [
@@ -208,6 +207,10 @@ REST_FRAMEWORK = {
         "public_read": _rate("public_read", "120/min"),  # the public website's read API, per IP
         "like": _rate("like", "60/min"),  # like / unlike, per user (Phase 8)
         "like_anonymous": _rate("like_anonymous", "60/hour"),  # like / unlike by visitors without an account, per IP
+        "news_takedown": _rate("news_takedown", "5/hour"),  # the public copyright-complaint form, per IP
+        "news_comment": _rate("news_comment", "20/hour"),  # posting news comments, per user
+        "news_search": _rate("news_search", "30/min"),  # searching news, per IP
+        "news_counter": _rate("news_counter", "60/min"),  # the licence page-view counter, per IP
         "academy_progress": _rate("academy_progress", "900/hour"),  # saving lesson progress, per user (the player saves every ~15 seconds)
         "academy_comment": _rate("academy_comment", "30/hour"),  # posting lesson comments, per user
         "academy_enroll": _rate("academy_enroll", "60/hour"),  # starting a free course, per user
@@ -225,10 +228,6 @@ REST_FRAMEWORK = {
         "data_export": _rate("data_export", "3/hour"),  # "download my data", per user
         "account_delete": _rate("account_delete", "3/hour"),  # per user
         "csp_report": _rate("csp_report", "30/min"),  # browser CSP reports, per IP
-        "news_takedown": _rate("news_takedown", "5/hour"),  # the public copyright-complaint form, per IPS
-        "news_comment": _rate("news_comment", "20/hour"),  # posting news comments, per user
-        "news_search": _rate("news_search", "30/min"),  # searching news, per IP
-        "news_counter": _rate("news_counter", "60/min"),  # the licence page-view counter, per IP
     },
     # How many reverse proxies (e.g. Nginx) sit in front of Django. 0 = trust REMOTE_ADDR only.
     # Set NUM_PROXIES=1 behind one proxy, otherwise every visitor shares the proxy's IP in throttles.
@@ -411,7 +410,7 @@ MARKETPLACE_REQUIRE_REVIEW = env_bool("MARKETPLACE_REQUIRE_REVIEW", True)
 MARKETPLACE_CURRENCY = os.environ.get("MARKETPLACE_CURRENCY", "USD").strip().upper()[:3] or "USD"  # prices and Paystack charges are in US dollars
 MARKETPLACE_MAX_PRICE = int(os.environ.get("MARKETPLACE_MAX_PRICE", "10000"))  # highest price per package, major units (USD)
 # Backend source code is never free: a buyer must pay (verified by Paystack) before the download starts.
-MARKETPLACE_BACKEND_REQUIRES_PAYMENT = env_bool("MARKETPLACE_BACKEND_REQUIRES_PAYMENT", True)# Source packages are stored OUTSIDE MEDIA_ROOT and have no URL: only the authorised download endpoint serves them.
+MARKETPLACE_BACKEND_REQUIRES_PAYMENT = env_bool("MARKETPLACE_BACKEND_REQUIRES_PAYMENT", True)
 # Prices are shown in MARKETPLACE_CURRENCY (USD); Paystack charges the equivalent in MARKETPLACE_CHARGE_CURRENCY (the currency your
 # Paystack account collects, naira by default) and settles to you in naira. The buyer's card is billed in their own currency by their bank.
 MARKETPLACE_CHARGE_CURRENCY = os.environ.get("MARKETPLACE_CHARGE_CURRENCY", "NGN").strip().upper()[:3] or "NGN"
@@ -419,6 +418,7 @@ MARKETPLACE_FX_LIVE = env_bool("MARKETPLACE_FX_LIVE", True)  # look the dollar r
 MARKETPLACE_FX_RATE = os.environ.get("MARKETPLACE_FX_RATE", "").strip()  # fallback: how many naira one dollar is, e.g. 1500
 MARKETPLACE_FX_URL = os.environ.get("MARKETPLACE_FX_URL", "https://open.er-api.com/v6/latest").strip()
 MARKETPLACE_FX_TIMEOUT = int(os.environ.get("MARKETPLACE_FX_TIMEOUT", "5"))
+# Source packages are stored OUTSIDE MEDIA_ROOT and have no URL: only the authorised download endpoint serves them.
 MARKETPLACE_PRIVATE_ROOT = os.environ.get("MARKETPLACE_PRIVATE_ROOT") or str(BASE_DIR / "private_media" / "marketplace")
 MARKETPLACE_MAX_ARCHIVE_BYTES = int(os.environ.get("MARKETPLACE_MAX_ARCHIVE_BYTES", str(50 * 1024 * 1024)))  # uploaded / imported ZIP
 MARKETPLACE_MAX_UNPACKED_BYTES = int(os.environ.get("MARKETPLACE_MAX_UNPACKED_BYTES", str(300 * 1024 * 1024)))  # archive-bomb guard
@@ -442,33 +442,6 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
 })
 
 
-# --- Video tools (extension roadmap, Phase 3) -------------------------------------------------------------
-# Master switch: false = every video-tools endpoint answers 404.
-VIDEO_TOOLS_ENABLED = env_bool("VIDEO_TOOLS_ENABLED", True)
-# Reviewed, permitted download methods, one adapter class per provider, e.g. VIDEO_TOOLS_ADAPTERS=youtube=my_pkg.mod.Adapter
-# Empty (the default) = every provider is inspect-only. A provider also has to be switched on by staff in the Django admin
-# (Video tools > Provider capabilities) after its current terms were reviewed. See docs/VIDEO_TOOLS.md.
-VIDEO_TOOLS_ADAPTERS = dict(
-    item.split("=", 1) for item in env_list("VIDEO_TOOLS_ADAPTERS") if "=" in item
-)
-VIDEO_TOOLS_PRIVATE_ROOT = os.environ.get("VIDEO_TOOLS_PRIVATE_ROOT") or str(BASE_DIR / "private_media" / "video_tools")
-VIDEO_TOOLS_MAX_FILE_BYTES = int(os.environ.get("VIDEO_TOOLS_MAX_FILE_BYTES", str(200 * 1024 * 1024)))
-VIDEO_TOOLS_RETENTION_HOURS = int(os.environ.get("VIDEO_TOOLS_RETENTION_HOURS", "24"))  # how long a finished file is kept
-VIDEO_TOOLS_JOB_RETENTION_DAYS = int(os.environ.get("VIDEO_TOOLS_JOB_RETENTION_DAYS", "30"))  # then the job record is deleted too
-VIDEO_TOOLS_MAX_ACTIVE_JOBS = int(os.environ.get("VIDEO_TOOLS_MAX_ACTIVE_JOBS", "2"))  # per person, at the same time
-VIDEO_TOOLS_MAX_JOBS_PER_DAY = int(os.environ.get("VIDEO_TOOLS_MAX_JOBS_PER_DAY", "20"))  # per person
-VIDEO_TOOLS_TIMEOUT_SECONDS = int(os.environ.get("VIDEO_TOOLS_TIMEOUT_SECONDS", "300"))
-VIDEO_TOOLS_RUN_INLINE = env_bool("VIDEO_TOOLS_RUN_INLINE", False)  # true = run jobs inside the request (no Celery); development only
-REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
-    "video_inspect": _rate("video_inspect", "60/min"),  # link checks, per IP
-    "video_download": _rate("video_download", "10/hour"),  # download requests, per user
-    "video_poll": _rate("video_poll", "180/min"),  # status checks and file fetches, per user
-})
-
-
-
-
-
 # --- Academy (extension roadmap): free and paid courses, lessons, progress, lesson comments ----------------
 # Everything below is new. Master switch: false = every Academy endpoint answers 404 (the rest of the site is unaffected).
 ACADEMY_ENABLED = env_bool("ACADEMY_ENABLED", True)
@@ -480,20 +453,16 @@ ACADEMY_COMMENT_GATE_DEFAULT = env_bool("ACADEMY_COMMENT_GATE_DEFAULT", True)  #
 ACADEMY_COMMENT_MODERATION = env_bool("ACADEMY_COMMENT_MODERATION", False)  # true: new lesson comments wait for staff approval
 ACADEMY_PAYMENT_PROVIDER = os.environ.get("ACADEMY_PAYMENT_PROVIDER", "paystack").strip().lower()  # only "paystack" is implemented
 
-
-
 # extension roadmap: News (rights-based news section). Everything is off-switchable without touching the rest of the site.
 NEWS_ENABLED = env_bool("NEWS_ENABLED", True)  # false: every /news/ endpoint answers 404
 NEWS_PUBLIC_ENABLED = env_bool("NEWS_PUBLIC_ENABLED", False)  # false: News is staff-only (staging); turn on after acceptance checks
 NEWS_IMPORT_ENABLED = env_bool("NEWS_IMPORT_ENABLED", False)  # false: no feed is ever fetched, only manual entry works
 NEWS_REQUIRE_COMMERCIAL_RIGHTS = env_bool("NEWS_REQUIRE_COMMERCIAL_RIGHTS", True)  # the site shows ads: articles need explicit commercial-use rights to go live
 NEWS_PUBLIC_CACHE_SECONDS = int(os.environ.get("NEWS_PUBLIC_CACHE_SECONDS", "60"))  # how long public lists are cached (a version key clears them on every change)
-NEWS_COPYRIGHT_CONTACT = os.environ.get("NEWS_COPYRIGHT_CONTACT", "")
-NEWS_TAKEDOWN_NOTIFY_EMAIL = os.environ.get("NEWS_TAKEDOWN_NOTIFY_EMAIL", "")
-
 NEWS_FEED_TIMEOUT_SECONDS = int(os.environ.get("NEWS_FEED_TIMEOUT_SECONDS", "10"))  # per request when polling a feed
 NEWS_FEED_MAX_BYTES = int(os.environ.get("NEWS_FEED_MAX_BYTES", str(2 * 1024 * 1024)))  # largest feed document accepted
-
+NEWS_COPYRIGHT_CONTACT = os.environ.get("NEWS_COPYRIGHT_CONTACT", "").strip()  # shown on every article page: where to send copyright complaints
+NEWS_TAKEDOWN_NOTIFY_EMAIL = os.environ.get("NEWS_TAKEDOWN_NOTIFY_EMAIL", "").strip()  # editors are emailed here when a complaint arrives
 NEWS_COMMENTS_ENABLED = env_bool("NEWS_COMMENTS_ENABLED", False)  # false: no News comments (reading or writing); turn on after moderation is ready
 NEWS_COMMENT_MODERATION = env_bool("NEWS_COMMENT_MODERATION", False)  # true: new News comments wait for staff approval
 NEWS_RIGHTS_WARNING_DAYS = int(os.environ.get("NEWS_RIGHTS_WARNING_DAYS", "14"))  # monitoring warns when a rights record ends within this many days

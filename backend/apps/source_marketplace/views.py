@@ -14,7 +14,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import BaseThrottle
 from rest_framework.views import APIView
-from .services import access, fx, github, payments
 
 from apps.audit import service as audit
 from apps.core.http import mark_per_user
@@ -30,7 +29,7 @@ from .serializers import (
     ModerationSerializer, OwnerProjectSerializer, backend_price_message, ProjectCardSerializer, ProjectDetailSerializer, ProjectWriteSerializer,
     PurchaseSerializer, TechnologySerializer, ScreenshotSerializer, check_package_kind,
 )
-from .services import access, github, payments
+from .services import access, fx, github, payments
 from .services.packages import remove_package, save_package, save_screenshots
 from .services.uploads import ArchiveRejected, clean_version, limits, safe_download_name, sanitize_archive
 
@@ -460,7 +459,7 @@ class CheckoutView(APIView):
             "list_price": f"{price:.2f}", "list_currency": project.currency,
         })
 
-    
+
 class VerifyPaymentView(APIView):
     """POST {reference}: the buyer's browser came back from Paystack. The SERVER asks Paystack; the browser's claim is not used."""
 

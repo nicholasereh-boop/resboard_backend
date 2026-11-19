@@ -50,12 +50,12 @@ def backend_package():
 def test_checkout_uses_the_database_price_and_ignores_what_the_browser_sends(paid, buyer, paystack):
     r = checkout(buyer, paid, amount=1, price="1", amount_minor=100, currency="USD")
     d = r.json()["data"]
-    assert r.status_code == 200 and d["amount"] == "5000.50" and d["currency"] == "USD"
+    assert r.status_code == 200 and d["amount"] == "7500750.00" and d["currency"] == "NGN" and d["list_price"] == "5000.50"
     assert d["authorization_url"].startswith("https://checkout.paystack.com/")
     sent = paystack.initialized[0]
-    assert sent["amount_minor"] == 500050 and sent["currency"] == "USD" and sent["email"] == "buyer@example.com"
+    assert sent["amount_minor"] == 750075000 and sent["currency"] == "NGN" and sent["email"] == "buyer@example.com"
     p = SourcePurchase.objects.get()
-    assert p.status == "pending" and p.amount_minor == 500050 and p.reference == d["reference"] and p.reference.startswith("rb_")
+    assert p.status == "pending" and p.amount_minor == 750075000 and p.reference == d["reference"] and p.reference.startswith("rb_")
     assert sent["callback_url"].endswith(f"/marketplace/purchases?reference={p.reference}")
 
 
@@ -101,12 +101,12 @@ def test_paid_access_is_locked_until_the_server_verifies(paid, buyer, paystack):
     d = SourceDownload.objects.get()
     assert d.basis == "purchase" and d.purchase.reference == ref
     entry = AuditLog.objects.get(action="marketplace.purchase")
-    assert entry.metadata["amount"] == "5000.50"
+    assert entry.metadata["amount"] == "7500750.00"
 
 
 @pytest.mark.parametrize("override,reason", [
     ({"amount": 100}, "amount_mismatch"),
-    ({"currency": "NGN"}, "currency_mismatch"),  # paid in a different currency than the one asked for
+    ({"currency": "USD"}, "currency_mismatch"),  # paid in a different currency than the one asked for
     ({"reference": "rb_someone_elses"}, "reference_mismatch"),
 ])
 def test_a_payment_that_does_not_match_exactly_grants_nothing(paid, buyer, paystack, override, reason):

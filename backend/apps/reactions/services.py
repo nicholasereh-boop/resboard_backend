@@ -21,6 +21,7 @@ def _create(story, **owner):
     adjust_story_counter(story.pk, "like_count", +1)
     return True
 
+
 def has_liked(user, visitor_id, story):
     """True if this logged-in reader OR this browser (visitor token) has liked the story."""
     who = Q()
@@ -29,6 +30,8 @@ def has_liked(user, visitor_id, story):
     if visitor_id:
         who |= Q(visitor_id=visitor_id)
     return bool(who) and Like.objects.filter(who, story=story).exists()
+
+
 def like_story(user, story, visitor_id=None):
     """Logged-in like. Idempotent. Returns True if the story's count went up, False if it was already liked.
 

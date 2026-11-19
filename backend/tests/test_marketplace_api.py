@@ -242,7 +242,7 @@ def test_free_download_requires_login_streams_a_zip_and_is_recorded(private_dirs
     assert d.basis == "free" and d.user_id == buyer.pk and len(d.ip_hash) in (0, 64)
 
 
-def test_paid_package_is_locked_for_everyone_but_owner_and_staff(private_dirs, seller, buyer, staff):
+def test_paid_backend_is_locked_for_everyone_but_its_seller_even_staff(private_dirs, seller, buyer, staff):
     c = client_for(seller)
     p = new_project(c)
     upload(c, p["id"], kind="backend")
@@ -251,8 +251,8 @@ def test_paid_package_is_locked_for_everyone_but_owner_and_staff(private_dirs, s
     r = client_for(buyer).get(url)
     assert r.status_code == 403 and "Buy" in r.json()["message"]
     assert SourceDownload.objects.count() == 0
-    assert c.get(url).status_code == 200 and client_for(staff).get(url).status_code == 200
-    assert {d.basis for d in SourceDownload.objects.all()} == {"owner", "staff"}
+    assert c.get(url).status_code == 200 and client_for(staff).get(url).status_code == 403  # staff pay for a published backend too
+    assert {d.basis for d in SourceDownload.objects.all()} == {"owner"}
 
 
 def test_unpublished_packages_look_nonexistent_to_everyone_else(private_dirs, seller, buyer):

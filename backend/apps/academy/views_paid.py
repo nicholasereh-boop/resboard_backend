@@ -28,6 +28,7 @@ from .permissions import AcademyEnabled, IsActiveUser
 from .services import entitlements, payments
 
 
+
 def order_data(order):
     return {
         "id": order.pk, "reference": order.reference, "status": order.status, "amount": f"{order.amount:.2f}", "currency": order.currency,

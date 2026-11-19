@@ -78,6 +78,9 @@ def private_dirs(settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path / "media"
     settings.MARKETPLACE_PRIVATE_ROOT = str(tmp_path / "private")
     settings.PAYSTACK_SECRET_KEY = SECRET
+    settings.MARKETPLACE_CHARGE_CURRENCY = "NGN"  # prices are in dollars, Paystack collects naira ...
+    settings.MARKETPLACE_FX_LIVE = False  # ... at a fixed test rate: tests never touch the network
+    settings.MARKETPLACE_FX_RATE = "1500"
     return tmp_path
 
 

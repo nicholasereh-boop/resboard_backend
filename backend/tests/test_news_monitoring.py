@@ -97,4 +97,3 @@ def test_hourly_task_logs_one_line_per_problem(caplog, staff):
     with caplog.at_level("WARNING", logger="apps.news.monitoring"):
         assert monitor() == 1
     assert "rights_ending" in caplog.text
-    

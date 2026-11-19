@@ -11,7 +11,6 @@ urlpatterns = [
     path("", include("apps.analytics.urls")),
     path("", include("apps.audit.urls")),
     path("", include("apps.source_marketplace.urls")),  # extension roadmap: source code marketplace
-    path("", include("apps.video_tools.urls")),  # extension roadmap: video tools
     path("", include("apps.academy.urls")),  # extension roadmap: Academy (courses, lessons, progress, paid access)
     path("", include("apps.news.urls")),  # extension roadmap: News (sources, rights, articles, public reading)
 ]

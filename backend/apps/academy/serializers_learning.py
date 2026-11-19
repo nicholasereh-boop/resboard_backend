@@ -1,5 +1,5 @@
-"""What learners (and visitors) see. A YouTube video id appears ONLY in the lesson payload, and only when the server has just
-decided this learner may watch that lesson."""
+"""What learners (and visitors) see. A YouTube video id appears ONLY for a lesson the server has just decided this learner may
+watch: in the lesson payload, and as the cover-picture address on that lesson's line of the outline. Locked lessons carry neither."""
 from .serializers_authoring import thumbnail_data
 
 
@@ -15,6 +15,7 @@ def course_card_data(course):
         "lesson_count": lesson_total, "duration_seconds": duration or 0, "published_at": course.published_at,
     }
 
+
 def cover_url(lesson, state):
     """YouTube's own cover picture, for a lesson this learner may already watch. Never for a locked lesson (the address holds the id)."""
     if state["can_view"] and lesson.youtube_id:
@@ -29,6 +30,8 @@ def curriculum_item(lesson, state):
         "is_intro": lesson.is_intro, "is_preview": lesson.is_preview, "state": state["state"], "can_view": state["can_view"], "reason": state["reason"],
         "requires_comment": state["requires_comment"], "cover": cover_url(lesson, state),
     }
+
+
 def access_data(state, next_state=None, next_id=None):
     return {
         "can_view": state["can_view"], "reason": state["reason"], "state": state["state"], "watch_met": state["watch_met"],

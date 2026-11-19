@@ -273,6 +273,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "id", "reference", "status", "amount", "currency", "list_price", "list_currency", "created_at", "verified_at",
             "project", "kind", "package_id", "version", "can_download",
         ]
+
     def get_project(self, obj):
         p = obj.package.project
         return {"id": p.pk, "slug": p.slug, "title": p.title}
@@ -305,3 +306,4 @@ def check_package_kind(value):
     if value not in ("frontend", "backend"):
         raise serializers.ValidationError({"kind": ["Choose frontend or backend."]})
     return value
+

@@ -84,6 +84,7 @@ class PaystackClient:
         except PaystackError:
             logger.warning("Paystack initialize was sent currency=%s amount_minor=%s", currency, int(amount_minor))  # helps spot a wrong currency
             raise
+
     def verify(self, reference):
         return self._call("GET", f"/transaction/verify/{reference}")
 
