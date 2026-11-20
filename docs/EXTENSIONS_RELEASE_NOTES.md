@@ -1,24 +1,23 @@
-# Marketplace and video tools: release notes
+# Marketplace: release notes
 
 ## Edits to existing files (everything else is new)
 
 | File | Change |
 | --- | --- |
-| `backend/config/settings/base.py` | two entries in `INSTALLED_APPS`; one new settings block **appended at the end** (also adds the new throttle rates) |
-| `backend/config/api_urls.py` | two `include(...)` lines |
+| `backend/config/settings/base.py` | one entry in `INSTALLED_APPS`; one new settings block **appended at the end** |
+| `backend/config/api_urls.py` | one `include(...)` line |
 | `backend/apps/audit/actions.py` | five `marketplace.*` action names |
-| `backend/config/celery.py` | one beat entry (video cleanup, every 10 minutes) |
 | `backend/requirements.txt` | `requests` (already installed through django-allauth; now explicit) |
 | `backend/tests/test_security_settings.py` | the CSRF-exempt allow-list now also names the Paystack webhook, with the reason |
 | `frontend/src/App.jsx` | imports and spreads `extensionRoutes.jsx` (public and admin) |
 | `frontend/src/components/public/Header.jsx` | spreads `EXTENSION_NAV_LINKS` into the menu |
 | `frontend/src/layouts/AdminLayout.jsx` | spreads `ADMIN_EXTENSION_LINKS` into the sidebar |
 | `frontend/src/utils/audit.js` | a "Marketplace" filter in the audit log |
-| `frontend/.env.example` | two commented feature flags |
+| `frontend/.env.example` | a commented feature flag |
 
-New: `backend/apps/source_marketplace/`, `backend/apps/video_tools/` (each with its own migration `0001`, touching only new tables),
-`frontend/src/{features.js, extensionRoutes.jsx, api/marketplace.js, api/videoTools.js, auth/RequireLogin.jsx, components/{marketplace,video}/, pages/{marketplace,video}/, pages/admin/MarketplaceReviewPage.jsx}`,
-the tests, and `docs/{MARKETPLACE,VIDEO_TOOLS,EXTENSIONS_RELEASE_NOTES}.md`.
+New: `backend/apps/source_marketplace/` (with its own migration `0001`, touching only new tables),
+`frontend/src/{features.js, extensionRoutes.jsx, api/marketplace.js, auth/RequireLogin.jsx, components/marketplace/, pages/marketplace/, pages/admin/MarketplaceReviewPage.jsx}`,
+the tests, and `docs/{MARKETPLACE,EXTENSIONS_RELEASE_NOTES}.md`.
 
 ## Test results
 
@@ -36,7 +35,7 @@ throttle scope with no rate, and a stock Django `SECRET_KEY` string in the unuse
 1. Back up the database and `media/`. 2. `pip install -r requirements.txt`. 3. `python manage.py migrate` (staging first).
 4. Set `PAYSTACK_SECRET_KEY` (test key first) and the Paystack webhook URL. 5. Make sure the web server accepts ~55 MB uploads on `/api/`.
 6. Create the private folders' backup job (`private_media/`). 7. Rebuild the frontend. 8. Make one test purchase and one test upload before announcing.
-To roll back: set `MARKETPLACE_ENABLED=false` / `VIDEO_TOOLS_ENABLED=false` (and the two `VITE_FEATURE_*` flags); the new tables can stay.
+To roll back: set `MARKETPLACE_ENABLED=false` (and `VITE_FEATURE_MARKETPLACE=false`); the new tables can stay.
 
 ## Before you ship: things to know
 
