@@ -25,7 +25,7 @@ def env_list(name, default=""):
 # --- Core ------------------------------------------------------------------
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")  # development.py/production.py decide what to do if empty
 DEBUG = False
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "api.resboard.online", "localhost,127.0.0.1")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 SITE_NAME = os.environ.get("SITE_NAME", "StoryBoard")
 
@@ -162,13 +162,46 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # --- Cookies, CSRF, CORS -----------------------------------------------------------
-SESSION_COOKIE_HTTPONLY = True  # JavaScript can never read the session
+
+# for server site host 
+
+
+SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"  # the CSRF cookie stays readable by JS so React can send X-CSRFToken
-CSRF_COOKIE_HTTPONLY = False  # deliberate: React reads it and sends it back in the X-CSRFToken header
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
-CORS_ALLOWED_ORIGINS = [FRONTEND_URL]  # ONLY the frontend may call the API from a browser
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = True
+
+# Allow React to read the CSRF cookie across subdomains
+CSRF_COOKIE_DOMAIN = ".resboard.online"
+
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL,
+    "https://resboard.online",
+    "https://www.resboard.online",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "https://resboard.online",
+    "https://www.resboard.online",
+]
+
 CORS_ALLOW_CREDENTIALS = True
+
+
+
+
+# for local host 
+# SESSION_COOKIE_HTTPONLY = True  # JavaScript can never read the session
+# SESSION_COOKIE_SAMESITE = "Lax"
+# CSRF_COOKIE_SAMESITE = "Lax"  # the CSRF cookie stays readable by JS so React can send X-CSRFToken
+# CSRF_COOKIE_HTTPONLY = False  # deliberate: React reads it and sends it back in the X-CSRFToken header
+# CSRF_TRUSTED_ORIGINS = [FRONTEND_URL, "https://resboard.online", "https://www.resboard.online",]
+# CORS_ALLOWED_ORIGINS = [FRONTEND_URL, "https://resboard.online", "https://www.resboard.online"]  # ONLY the frontend may call the API from a browser
+# CORS_ALLOW_CREDENTIALS = True
 
 def _rate(scope, default):
     """Throttle rate for a scope; override with THROTTLE_<SCOPE> (e.g. THROTTLE_LOGIN=20/min)."""
