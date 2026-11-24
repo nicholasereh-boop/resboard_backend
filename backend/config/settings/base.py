@@ -25,7 +25,12 @@ def env_list(name, default=""):
 # --- Core ------------------------------------------------------------------
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")  # development.py/production.py decide what to do if empty
 DEBUG = False
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "api.resboard.online", "localhost,127.0.0.1")
+
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    "api.resboard.online,localhost,127.0.0.1"
+)
+
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 SITE_NAME = os.environ.get("SITE_NAME", "StoryBoard")
 
