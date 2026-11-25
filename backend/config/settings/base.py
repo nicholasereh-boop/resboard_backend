@@ -180,7 +180,7 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = True
 
 # Allow React to read the CSRF cookie across subdomains
-CSRF_COOKIE_DOMAIN = ".resboard.online"
+CSRF_COOKIE_DOMAIN = None if urlparse(FRONTEND_URL).hostname in ("localhost", "127.0.0.1") else ".resboard.online"
 
 CSRF_TRUSTED_ORIGINS = [
     FRONTEND_URL,
