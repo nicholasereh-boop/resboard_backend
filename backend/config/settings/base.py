@@ -349,6 +349,13 @@ def storages_from_env(environ=None):
     bucket = (environ.get("MEDIA_STORAGE_BUCKET") or "").strip()
     if bucket:
         endpoint = (environ.get("MEDIA_STORAGE_ENDPOINT") or "").strip() or None
+        custom_domain = (environ.get("MEDIA_CDN_DOMAIN") or "").strip().rstrip("/") or None
+        # If the endpoint carries a path (e.g. https://<account>.r2.cloudflarestorage.com/<bucket>), path-style
+        # addressing stores every object under "<that path>/" inside the bucket. Public URLs built from a custom
+        # domain must include the same prefix, or they point at keys that do not exist (broken images).
+        endpoint_path = urlparse(endpoint).path.strip("/") if endpoint else ""
+        if custom_domain and endpoint_path and "/" not in custom_domain:
+            custom_domain = f"{custom_domain}/{endpoint_path}"
         storages["default"] = {
             "BACKEND": "storages.backends.s3.S3Storage",
             "OPTIONS": {
@@ -357,7 +364,7 @@ def storages_from_env(environ=None):
                 "access_key": (environ.get("MEDIA_STORAGE_ACCESS_KEY") or "").strip() or None,
                 "secret_key": (environ.get("MEDIA_STORAGE_SECRET_KEY") or "").strip() or None,
                 "endpoint_url": endpoint,
-                "custom_domain": (environ.get("MEDIA_CDN_DOMAIN") or "").strip() or None,
+                "custom_domain": custom_domain,
                 "addressing_style": "path" if endpoint else None,  # MinIO / R2 style URLs
                 "file_overwrite": False,  # never replace an existing object
                 "querystring_auth": False,  # public URLs without signatures
