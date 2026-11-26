@@ -51,7 +51,7 @@ class PublicNewsView(APIView):
 def public_articles():
     """Public articles with everything a card needs in a fixed number of queries."""
     articles.publish_due()  # scheduled articles that became due appear without waiting for Celery
-    return NewsArticle.objects.public().select_related("source", "category").prefetch_related("assets__image").defer("body")
+    return NewsArticle.objects.public().select_related("source", "category", "cover_image").prefetch_related("assets__image").defer("body", "content_json")
 
 
 def _cached(kind, request, build):

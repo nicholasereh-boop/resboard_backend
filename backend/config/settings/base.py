@@ -511,3 +511,4 @@ NEWS_TAKEDOWN_NOTIFY_EMAIL = os.environ.get("NEWS_TAKEDOWN_NOTIFY_EMAIL", "").st
 NEWS_COMMENTS_ENABLED = env_bool("NEWS_COMMENTS_ENABLED", False)  # false: no News comments (reading or writing); turn on after moderation is ready
 NEWS_COMMENT_MODERATION = env_bool("NEWS_COMMENT_MODERATION", False)  # true: new News comments wait for staff approval
 NEWS_RIGHTS_WARNING_DAYS = int(os.environ.get("NEWS_RIGHTS_WARNING_DAYS", "14"))  # monitoring warns when a rights record ends within this many days
+NEWS_INHOUSE_RETENTION_DAYS = int(os.environ.get("NEWS_INHOUSE_RETENTION_DAYS", "60"))  # articles written by our own staff leave the public site (status "archived") this many days after publishing; 0 = keep forever

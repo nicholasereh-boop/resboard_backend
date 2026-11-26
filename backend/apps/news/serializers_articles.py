@@ -2,6 +2,8 @@
 from rest_framework import serializers
 
 from apps.core.text import clean_plain_text
+from apps.media.models import MediaAsset
+from apps.stories.content import asset_ids, clean_content, resolve_media  # the same document schema and media library the stories use
 
 from .models import NewsAsset, NewsCategory, NewsSource
 from .services import policy, rights, sanitize
@@ -36,6 +38,20 @@ class ArticleWriteSerializer(serializers.Serializer):
     original_url = serializers.URLField(max_length=700, required=False, allow_blank=True)
     source_published_at = serializers.DateTimeField(required=False, allow_null=True)
     note = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    content_json = serializers.JSONField(required=False)
+    cover_image = serializers.PrimaryKeyRelatedField(
+        queryset=MediaAsset.objects.all(), allow_null=True, required=False,
+        error_messages={"does_not_exist": "That image does not exist.", "incorrect_type": "That image does not exist."},
+    )
+
+    def validate_content_json(self, value):
+        cleaned = clean_content(value)  # rebuilt from an allowlist: the only way a document reaches the database
+        ids = asset_ids(cleaned)
+        if ids:
+            missing = sorted(ids - set(MediaAsset.objects.filter(pk__in=ids).values_list("pk", flat=True)))
+            if missing:
+                raise serializers.ValidationError("These images are not in the media library: " + ", ".join(map(str, missing)) + ".")
+        return cleaned
 
     def validate_title(self, value):
         return clean_plain_text(value, max_length=220, allow_blank=False)
@@ -80,6 +96,12 @@ class AssetWriteSerializer(serializers.ModelSerializer):
         return attrs
 
 
+def cover_data(asset):
+    if asset is None or not asset.file:
+        return None
+    return {"id": asset.pk, "url": asset.file.url, "alt_text": asset.alt_text, "width": asset.width, "height": asset.height}
+
+
 def category_data(c):
     return {"id": c.pk, "name": c.name, "slug": c.slug, "description": c.description, "position": c.position, "is_active": c.is_active}
 
@@ -96,15 +118,16 @@ def asset_admin_data(a):
 def article_admin_data(a, *, full=False):
     data = {
         "id": a.pk, "slug": a.slug, "title": a.title, "standfirst": a.standfirst, "status": a.status, "article_type": a.article_type,
-        "source": {"id": a.source_id, "name": a.source.name}, "category": category_data(a.category) if a.category_id else None,
+        "source": {"id": a.source_id, "name": a.source.name, "source_type": a.source.source_type}, "category": category_data(a.category) if a.category_id else None,
         "author_name": a.author_name, "is_featured": a.is_featured, "is_breaking": a.is_breaking, "imported": a.imported,
-        "published_at": a.published_at, "scheduled_for": a.scheduled_for, "quarantine_reason": a.quarantine_reason,
+        "published_at": a.published_at, "scheduled_for": a.scheduled_for, "quarantine_reason": a.quarantine_reason, "cover": cover_data(a.cover_image),
+        "reading_minutes": a.reading_minutes,
         "review_note": a.review_note, "created_at": a.created_at, "updated_at": a.updated_at,
     }
     if full:
         ok, reasons = check_publishable(a)
         data.update({
-            "body": a.body, "language": a.language, "attribution": a.attribution, "canonical_url": a.canonical_url, "original_url": a.original_url,
+            "body": a.body, "content_json": resolve_media(a.content_json) if a.content_json else None, "language": a.language, "attribution": a.attribution, "canonical_url": a.canonical_url, "original_url": a.original_url,
             "external_id": a.external_id, "source_published_at": a.source_published_at, "rights_record": a.rights_record_id,
             "can_publish": ok, "blockers": reasons, "assets": [asset_admin_data(x) for x in a.assets.all()],
             "denylisted_publisher": policy.source_is_denylisted(a.source), "decision": rights.evaluate(a.source, record=a.rights_record).as_dict() if a.rights_record_id else None,
@@ -132,6 +155,9 @@ def public_card(a):
         "category": {"name": a.category.name, "slug": a.category.slug} if a.category_id else None,
         "source": {"name": a.source.name, "slug": a.source.slug}, "is_featured": a.is_featured, "is_breaking": a.is_breaking,
         "article_type": a.article_type, "lead_image": {**_image(lead), "alt": lead.alt_text, "credit": lead.credit} if lead and _image(lead) else None,
+        # Story-shaped fields, so the story cards and the news cards can share one design:
+        "cover": cover_data(a.cover_image) or ({"url": _image(lead)["url"], "alt_text": lead.alt_text, "width": _image(lead)["width"], "height": _image(lead)["height"]} if lead and _image(lead) else None),
+        "author": a.author_name, "excerpt": a.standfirst, "reading_minutes": a.reading_minutes, "path": f"/news/{a.slug}",
     }
 
 
@@ -139,7 +165,7 @@ def public_detail(a, decision):
     show_original = decision.attribution_required and (a.original_url or a.canonical_url)
     return {
         **public_card(a),
-        "body": a.body, "language": a.language, "attribution": a.attribution, "source_published_at": a.source_published_at,
+        "body": a.body, "content_json": resolve_media(a.content_json) if a.content_json else None, "language": a.language, "attribution": a.attribution, "source_published_at": a.source_published_at,
         "original_url": (a.original_url or a.canonical_url) if show_original else "",
         "counter_required": decision.counter_required,
         "licence": decision.record.licence if decision.record else "",

@@ -25,4 +25,5 @@ app.conf.beat_schedule = {
     "news-poll-sources": {"task": "apps.news.tasks.poll_due_sources", "schedule": 15 * 60.0},
     "news-rights-maintenance": {"task": "apps.news.tasks.rights_maintenance", "schedule": crontab(hour=2, minute=20)},
     "news-monitor": {"task": "apps.news.tasks.monitor", "schedule": crontab(minute=5)},
+    "news-recycle-old": {"task": "apps.news.tasks.recycle_old_news", "schedule": crontab(hour=3, minute=10)},
 }

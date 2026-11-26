@@ -48,6 +48,7 @@ class NewsArticle(models.Model):
         REJECTED = "rejected", "Rejected"
         WITHDRAWN = "withdrawn", "Withdrawn"
         QUARANTINED = "quarantined", "Quarantined (rights lapsed or disputed)"
+        ARCHIVED = "archived", "Archived (recycled after the retention period)"
 
     class ArticleType(models.TextChoices):
         ORIGINAL = "original", "ResourceBoard original"
@@ -64,7 +65,10 @@ class NewsArticle(models.Model):
     title = models.CharField(max_length=220)
     slug = models.SlugField(max_length=240, unique=True)
     standfirst = models.CharField(max_length=500, blank=True)
-    body = models.TextField(blank=True)  # SANITISED html (services/sanitize.py); never stored raw
+    body = models.TextField(blank=True)  # SANITISED html (services/sanitize.py); never stored raw. For editor-written articles it is derived from content_json.
+    content_json = models.JSONField(null=True, blank=True)  # the story-style editor document (same schema and media library as Stories); null for imported articles
+    cover_image = models.ForeignKey("media.MediaAsset", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")  # a file in the SAME library the stories use
+    reading_minutes = models.PositiveSmallIntegerField(default=0)
     author_name = models.CharField(max_length=160, blank=True)
     article_type = models.CharField(max_length=14, choices=ArticleType.choices, default=ArticleType.ORIGINAL)
     language = models.CharField(max_length=8, default="en")
@@ -153,7 +157,7 @@ class NewsRevision(models.Model):
 
     article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE, related_name="revisions")
     number = models.PositiveIntegerField()
-    action = models.CharField(max_length=24)  # created, edited, submitted, published, scheduled, rejected, withdrawn, quarantined, restored, imported
+    action = models.CharField(max_length=24)  # created, edited, submitted, published, scheduled, rejected, withdrawn, quarantined, archived, restored, imported
     title = models.CharField(max_length=220)
     standfirst = models.CharField(max_length=500, blank=True)
     body = models.TextField(blank=True)

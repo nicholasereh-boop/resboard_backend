@@ -4,6 +4,8 @@ Life of an article:  draft -> pending -> published | scheduled -> published -> w
                      pending -> rejected         published/scheduled -> quarantined (rights lapsed or disputed) -> pending (restore)
 The gate (check_publishable) runs before an article becomes published or scheduled, again when a scheduled one comes due, and again
 whenever a published article is edited. Public reads also re-check rights (NewsArticleQuerySet.public)."""
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
@@ -13,9 +15,9 @@ from django.utils import timezone
 from apps.core.utils import unique_slug
 
 from ..models import NewsArticle, NewsCategory, NewsRevision, NewsSource
-from . import policy, rights, sanitize
+from . import inhouse, policy, richtext, rights, sanitize
 
-EDITABLE_FIELDS = ("title", "standfirst", "body", "author_name", "category", "language", "is_featured", "is_breaking", "canonical_url", "original_url", "source_published_at")
+EDITABLE_FIELDS = ("title", "standfirst", "body", "author_name", "category", "language", "is_featured", "is_breaking", "canonical_url", "original_url", "source_published_at", "content_json", "cover_image")
 CACHE_VERSION_KEY = "news:version"
 
 
@@ -97,12 +99,16 @@ def _attribution(article, now=None):
 
 
 def _apply(article, data):
+    # An editor document (content_json) is the source of truth for its article: the plain body is derived from it, so the two never disagree.
+    if data.get("content_json") is not None:
+        data = {**data, "body": richtext.doc_to_html(data["content_json"])}
     for field in EDITABLE_FIELDS:
         if field in data:
             value = data[field]
             if field == "body":
                 value = sanitize.clean_body(value)
             setattr(article, field, value)
+    article.reading_minutes = richtext.reading_minutes(sanitize.plain_text(article.body))
     article.content_hash = _hash(article)
     article.url_hash = sanitize.url_hash(article.canonical_url)
 
@@ -152,7 +158,7 @@ def _type_for(source):
 
 @transaction.atomic
 def update_article(article, user, data, note=""):
-    if article.status in (NewsArticle.Status.WITHDRAWN, NewsArticle.Status.QUARANTINED):
+    if article.status in (NewsArticle.Status.WITHDRAWN, NewsArticle.Status.QUARANTINED, NewsArticle.Status.ARCHIVED):
         raise ArticleError("Restore this article (or create a new one) before editing it.")
     before = article.content_hash
     _apply(article, data)
@@ -243,8 +249,8 @@ def withdraw(article, user, reason):
 
 @transaction.atomic
 def restore(article, user):
-    """A quarantined or withdrawn article goes back to the review queue (never straight to published)."""
-    _require_state(article, (NewsArticle.Status.QUARANTINED, NewsArticle.Status.WITHDRAWN), "restored")
+    """A quarantined, withdrawn or archived article goes back to the review queue (never straight to published)."""
+    _require_state(article, (NewsArticle.Status.QUARANTINED, NewsArticle.Status.WITHDRAWN, NewsArticle.Status.ARCHIVED), "restored")
     article.status = NewsArticle.Status.PENDING
     article.quarantine_reason = ""
     article.quarantined_from = ""
@@ -307,6 +313,33 @@ def publish_due(now=None):
     return published
 
 
+def recycle_expired(now=None, *, dry_run=False):
+    """Retire in-house articles (source type "original") that have been public for NEWS_INHOUSE_RETENTION_DAYS. They are archived, not
+    deleted: hidden from every public page and list, still in the newsroom, and restorable (restore -> review -> publish starts a new cycle).
+    Imported or licensed articles are never touched here. Returns the number archived (or that would be, with dry_run)."""
+    days = settings.NEWS_INHOUSE_RETENTION_DAYS
+    if days <= 0:
+        return 0
+    now = now or timezone.now()
+    cutoff = now - timedelta(days=days)
+    due = NewsArticle.objects.filter(
+        status=NewsArticle.Status.PUBLISHED, published_at__lte=cutoff, source__source_type=NewsSource.SourceType.ORIGINAL,
+    ).select_related("source")
+    if dry_run:
+        return due.count()
+    count = 0
+    for article in due:
+        with transaction.atomic():
+            article.status = NewsArticle.Status.ARCHIVED
+            article.review_note = f"Archived automatically after {days} days."
+            article.save(update_fields=["status", "review_note", "updated_at"])
+            _revision(article, "archived", None, article.review_note)
+        count += 1
+    if count:
+        bump_cache()
+    return count
+
+
 def sweep_rights(now=None):
     """Daily safety net: expire ended records, then quarantine any live article whose gate no longer passes. Returns the number quarantined."""
     now = now or timezone.now()
@@ -335,4 +368,4 @@ if _on_source_loss not in rights.LOSS_HANDLERS:
 if _on_record_loss not in rights.RECORD_HANDLERS:
     rights.RECORD_HANDLERS.append(_on_record_loss)
 
-__all__ = ["ArticleError", "NewsCategory", "policy"]
+__all__ = ["ArticleError", "NewsCategory", "inhouse", "policy"]

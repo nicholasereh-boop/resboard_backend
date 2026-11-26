@@ -26,7 +26,7 @@ class NewsConfigView(APIView):
     permission_classes = [NewsEnabled, AllowAny]
 
     def get(self, request, **kwargs):
-        return Response({"enabled": settings.NEWS_ENABLED, "public": settings.NEWS_PUBLIC_ENABLED, "import": settings.NEWS_IMPORT_ENABLED, "copyright_contact": settings.NEWS_COPYRIGHT_CONTACT, "comments": settings.NEWS_COMMENTS_ENABLED})
+        return Response({"enabled": settings.NEWS_ENABLED, "public": settings.NEWS_PUBLIC_ENABLED, "import": settings.NEWS_IMPORT_ENABLED, "copyright_contact": settings.NEWS_COPYRIGHT_CONTACT, "comments": settings.NEWS_COMMENTS_ENABLED, "inhouse_retention_days": settings.NEWS_INHOUSE_RETENTION_DAYS})
 
 
 class StaffView(APIView):

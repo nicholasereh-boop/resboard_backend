@@ -43,6 +43,12 @@ def rights_maintenance():
 
 
 @shared_task
+def recycle_old_news():
+    """Daily: archive in-house articles that have been public for NEWS_INHOUSE_RETENTION_DAYS (60 by default). Returns how many were archived."""
+    return articles.recycle_expired()
+
+
+@shared_task
 def monitor():
     """Hourly: write one log line per problem the newsroom should know about (see services/monitoring.py). Returns the number of problems."""
     return len(monitoring.log_alerts())

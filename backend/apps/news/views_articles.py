@@ -15,7 +15,7 @@ from .serializers_articles import (
     ArticleUpdateSerializer, ArticleWriteSerializer, AssetWriteSerializer, CategoryWriteSerializer, article_admin_data,
     asset_admin_data, category_data, revision_data,
 )
-from .services import articles
+from .services import articles, inhouse
 from .services.articles import ArticleError
 from .views import StaffView, _rights_failure  # noqa: F401
 
@@ -61,7 +61,7 @@ class AdminCategoryDetailView(StaffView):
 
 class AdminArticleListCreateView(StaffView):
     def get(self, request, **kwargs):
-        qs = NewsArticle.objects.select_related("source", "category").order_by("-updated_at", "-id")
+        qs = NewsArticle.objects.select_related("source", "category", "cover_image").order_by("-updated_at", "-id")
         status_ = request.query_params.get("status")
         if status_ in NewsArticle.Status.values:
             qs = qs.filter(status=status_)
@@ -82,7 +82,7 @@ class AdminArticleListCreateView(StaffView):
         data = dict(serializer.validated_data)
         source = data.pop("source", None)
         if source is None:
-            raise ValidationError({"source": "Choose the source this article belongs to (use the ResourceBoard source for original reporting)."})
+            source = inhouse.get_inhouse_source()  # no outside source: written by our own staff, under the in-house source
         data.pop("note", None)
         try:
             with transaction.atomic():
@@ -95,7 +95,7 @@ class AdminArticleListCreateView(StaffView):
 
 class AdminArticleDetailView(StaffView):
     def get(self, request, pk, **kwargs):
-        article = get_object_or_404(NewsArticle.objects.select_related("source", "category", "rights_record").prefetch_related("assets__image"), pk=pk)
+        article = get_object_or_404(NewsArticle.objects.select_related("source", "category", "rights_record", "cover_image").prefetch_related("assets__image"), pk=pk)
         return Response(article_admin_data(article, full=True))
 
     def patch(self, request, pk, **kwargs):
